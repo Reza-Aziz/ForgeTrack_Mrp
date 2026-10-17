@@ -1,0 +1,3 @@
+.odoo/
+__pycache__/
+*.py[cod]
