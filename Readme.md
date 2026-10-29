@@ -1,9 +1,25 @@
 
-# ForgeTrack — Odoo Manufacturing Module
+# ForgeTrack — IoT + Odoo Manufacturing Lab
+
+## Structure
+```
+ForgeTrack/
+├── addons/forgetrack_mrp/   # Odoo custom module (Odoo 19)
+├── backend/                 # MQTT subscriber → Odoo bridge
+│   ├── subscriber.py        # paho-mqtt listener
+│   ├── odoo_client.py       # POST /json/2 → forgetrack.machine.reading
+│   ├── requirements.txt
+│   └── .env                 # ODOO_URL, ODOO_DB, ODOO_API_KEY, MQTT_*
+└── compose.yaml             # Odoo 19 + Postgres 15 (Docker)
+```
 
 ## Overview
 ForgeTrack is a beginner custom Odoo module
 for managing simple production orders.
+
+## IoT pipeline
+Sensor (ESP32 + HC-SR04) → Mosquitto MQTT (`factory/machine-01/telemetry`)
+→ `backend/subscriber.py` → Odoo JSON API → `forgetrack.machine.reading`.
 
 ## Features
 - Create and manage production orders
@@ -38,3 +54,12 @@ Bill of Materials, or automatic inventory updates.
 4. Create or open the `forgetrack_db` database.
 5. Update the Apps List.
 6. Install ForgeTrack MRP.
+
+## Run the MQTT bridge
+```powershell
+cd backend
+python -m venv .venv            # sekali saja
+.venv\Scripts\pip install -r requirements.txt
+Copy-Item .env.example .env     # lalu isi nilai aslinya
+.venv\Scripts\python subscriber.py
+```

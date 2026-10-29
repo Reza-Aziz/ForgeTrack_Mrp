@@ -11,6 +11,8 @@
     "data": [
         "security/ir.model.access.csv",
         "views/production_order_views.xml",
+        "views/machine_reading_views.xml",
+        "data/ir_cron.xml",
     ],
     "installable": True,
     "application": True,

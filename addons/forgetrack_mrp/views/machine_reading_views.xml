@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_forgetrack_machine_reading_list"
+            model="ir.ui.view">
+        <field name="name">forgetrack.machine.reading.list</field>
+        <field name="model">forgetrack.machine.reading</field>
+        <field name="arch" type="xml">
+            <list string="Machine Monitoring">
+                <field name="machine_id"/>
+                <field name="distance_cm"/>
+                <field name="reading_time"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_forgetrack_machine_reading"
+            model="ir.actions.act_window">
+        <field name="name">Machine Monitoring</field>
+        <field name="res_model">forgetrack.machine.reading</field>
+        <field name="view_mode">list</field>
+            </record>
+
+    <menuitem
+        id="menu_forgetrack_machine_reading"
+        name="Machine Monitoring"
+        parent="menu_forgetrack_root"
+        action="action_forgetrack_machine_reading"
+        sequence="20"
+    />
+
+</odoo>
