@@ -1,0 +1,82 @@
+.o_ft_dashboard {
+    padding: 1rem;
+
+    .o_ft_toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+
+        h4 { margin: 0; }
+    }
+
+    .o_ft_filters {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .o_ft_range {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        input {
+            width: auto;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+        }
+    }
+
+    .o_ft_empty {
+        padding: 3rem 0;
+        text-align: center;
+    }
+
+    .o_ft_grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 1rem;
+    }
+
+    .o_ft_card {
+        background: $o-view-background-color;
+        border: 1px solid $border-color;
+        border-radius: 8px;
+        padding: 0.875rem 1rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+        .o_ft_device {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .o_ft_count {
+            .o_ft_number {
+                font-size: 2.5rem;
+                font-weight: 700;
+                line-height: 1.2;
+            }
+
+            .o_ft_unit {
+                color: $text-muted;
+                font-size: 0.875rem;
+                margin-left: 0.35rem;
+            }
+        }
+
+        .o_ft_meta {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+
+            .o_ft_label {
+                display: inline-block;
+                min-width: 5.5rem;
+                color: $text-muted;
+            }
+        }
+    }
+}

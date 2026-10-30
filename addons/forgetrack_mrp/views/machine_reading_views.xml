@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <record id="action_forgetrack_dashboard" model="ir.actions.client">
+        <field name="name">Dashboard Monitoring</field>
+        <field name="tag">forgetrack.dashboard</field>
+    </record>
+
+    <menuitem
+        id="menu_forgetrack_dashboard"
+        name="Dashboard Monitoring"
+        parent="menu_forgetrack_root"
+        action="action_forgetrack_dashboard"
+        sequence="10"
+    />
+
     <record id="view_forgetrack_machine_reading_list"
             model="ir.ui.view">
         <field name="name">forgetrack.machine.reading.list</field>

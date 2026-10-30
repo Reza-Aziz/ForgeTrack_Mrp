@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="forgetrack_mrp.Dashboard">
+    <div class="o_ft_dashboard">
+        <div class="o_ft_toolbar">
+            <h4>Monitoring Mesin</h4>
+            <div class="o_ft_filters">
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-primary"
+                            t-on-click="() => this.setPreset(0)">Hari ini</button>
+                    <button type="button" class="btn btn-outline-primary"
+                            t-on-click="() => this.setPreset(7)">7 hari</button>
+                    <button type="button" class="btn btn-outline-primary"
+                            t-on-click="() => this.setPreset(30)">30 hari</button>
+                </div>
+                <div class="o_ft_range">
+                    <input type="datetime-local" class="form-control"
+                           t-model="state.from" t-on-change="() => this.load()"/>
+                    <span class="text-muted">s/d</span>
+                    <input type="datetime-local" class="form-control"
+                           t-model="state.to" t-on-change="() => this.load()"/>
+                </div>
+            </div>
+        </div>
+
+        <t t-if="state.cards.length === 0">
+            <div class="o_ft_empty text-muted">
+                Tidak ada bacaan pada rentang waktu ini.
+            </div>
+        </t>
+
+        <div class="o_ft_grid">
+            <t t-foreach="state.cards" t-as="card" t-key="card.machine_id">
+                <div class="o_ft_card">
+                    <div class="o_ft_device" t-esc="card.machine_id"/>
+                    <div class="o_ft_count">
+                        <span class="o_ft_number" t-esc="card.count"/>
+                        <span class="o_ft_unit">bacaan</span>
+                    </div>
+                    <div class="o_ft_meta">
+                        <div>
+                            <span class="o_ft_label">Rata-rata</span>
+                            <t t-if="card.avg_distance !== false"
+                               t-esc="card.avg_distance + ' cm'"/>
+                        </div>
+                        <div>
+                            <span class="o_ft_label">Rentang</span>
+                            <t t-if="card.min_distance !== false"
+                               t-esc="card.min_distance + ' – ' + card.max_distance + ' cm'"/>
+                        </div>
+                        <div>
+                            <span class="o_ft_label">Terakhir</span>
+                            <t t-esc="card.last_reading"/>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </div>
+</t>
+
+</templates>
