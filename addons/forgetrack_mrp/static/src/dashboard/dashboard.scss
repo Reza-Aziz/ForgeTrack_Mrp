@@ -59,13 +59,55 @@
     .form-select { width: auto; min-width: 9rem; }
 }
 
-// ——— Grid utama: kartu mesin + kartu grafik
+// ——— Grid utama: 4 kolom (rasio 1:3), ML menempati penuh di bawah
+//   [mesin  1/4] [grafik  3/4]
+//   [ML seluruh lebar baris kedua           ]
 .o_ft_grid {
     display: grid;
-    grid-template-columns: minmax(300px, 420px) 1fr;
+    // kolom mesin pakai minmax biar nggak sempit ekstrem di layar sedang
+    grid-template-columns: minmax(240px, 1fr) repeat(3, 1fr);
     gap: 1rem;
 
-    @media (max-width: 900px) { grid-template-columns: 1fr; }
+    .o_ft_machine   { grid-column: 1 / 2; grid-row: 1; }
+    .o_ft_chartcard { grid-column: 2 / 5; grid-row: 1; }
+    .o_ft_ml        { grid-column: 1 / 5; grid-row: 2; }
+
+    // Grafik mengikuti TINGGI kartu mesin: tinggi kontribusinya nol (height 0),
+    // lalu mengisi baris (min-height 100%); konten meluber dipotong rapi.
+    // Akibatnya tinggi baris 1 murni ditentukan kartu mesin.
+    .o_ft_chartcard {
+        height: 0;
+        min-height: 100%;
+        overflow: hidden;
+
+        // rantai flex utuh: card-body (col) -> .o_ft_chart (col) -> .o_ft_chartwrap
+        .card-body {
+            height: 100%;       // display:flex sudah dari aturan kartu grafik global
+        }
+
+        .o_ft_chart {
+            display: flex;
+            flex-direction: column;  // dari blok bawah, tetap kolom
+            flex: 1;
+            min-height: 0;
+        }
+    }
+
+    @media (max-width: 900px) {
+        grid-template-columns: 1fr;
+
+        .o_ft_machine, .o_ft_chartcard, .o_ft_ml { grid-column: auto; grid-row: auto; }
+
+        // teknik height-0 hanya menegakkan ketat; di mode vertikal, kembalikan normal
+        .o_ft_chartcard {
+            height: auto;
+            min-height: 0;
+            overflow: visible;
+
+            .card-body, .o_ft_chart { height: auto; }
+        }
+        .o_ft_svg { height: var(--o_ft_chart_h, 200px); }
+    }
 }
 
 // ——— Kartu mesin
@@ -151,7 +193,20 @@
 }
 
 // ——— Kartu grafik: SVG stretch, sumbu Y HTML, garis target
+// Kartu grafik TIDAK menentukan tinggi baris — mengikuti kartu mesin; area
+// chart pakai sisa ruang (flex 1 + min-height 0).
 .o_ft_chartcard {
+    .card-body { display: flex; flex-direction: column; }
+
+    // rantai flex: svg harus menyelesaikan tingginya contra tinggi definit agar
+    // tidak melebar jadi persegi (ratio viewBox 1:1)
+    .o_ft_chart {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+    }
+
     .o_ft_charttitle {
         margin: 0;
         font-size: 1rem;
@@ -164,14 +219,15 @@
     display: flex;
     gap: 0.4rem;
     margin-top: 0.75rem;
+    flex: 1;
+    min-height: 0;
 }
 
-// Sumbu Y: 5 label nilai, dikalikan ke tinggi SVG (var --o_ft_chart_h)
+// Sumbu Y: 5 label nilai — flex item yang melebar full tinggi (stretch)
 .o_ft_yaxis {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: var(--o_ft_chart_h, 200px);
     min-width: 2.25rem;
     text-align: right;
     font-size: 0.65rem;
@@ -187,7 +243,7 @@
 .o_ft_svg {
     display: block;
     width: 100%;
-    height: var(--o_ft_chart_h, 200px);
+    height: 100%;
 
     line { stroke: $border-color; stroke-width: 1; }
 
@@ -199,7 +255,7 @@
         &:hover { opacity: 1; }
     }
 
-    // jam yang mencapai target/jam — hijau penuh
+    // jam yang mencapai target/jam
     rect.o_ft_hit {
         fill: $success;
         opacity: 0.9;
@@ -214,9 +270,11 @@
     }
 }
 
+// Axis jam: di bawah area plot, rata dengan plot (mengimbangi lebar sumbu Y)
 .o_ft_axis {
     display: flex;
     justify-content: space-around;
+    margin-left: 2.65rem;
     font-size: 0.65rem;
     color: $text-muted;
 
@@ -227,13 +285,17 @@
 }
 
 .o_ft_xlabel {
+    margin-left: 2.65rem;
     margin-top: 0.15rem;
     text-align: right;
     font-size: 0.65rem;
 }
 
-// ——— Kartu Analisis ML
+// ——— Kartu Analisis ML: milik baris kedua, selebar kontainer agar tidak ada
+// ruang kosong di bawah (kartu mesin & grafik berdampingan di baris satu)
 .o_ft_ml {
+    grid-column: 1 / -1;
+
     .o_ft_mlrow {
         padding: 0.6rem 0;
         border-top: 1px solid $border-color;

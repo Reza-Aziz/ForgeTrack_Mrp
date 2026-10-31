@@ -85,7 +85,7 @@ def detect_anomaly(machine_id, now_wib=None):
         "confidence": confidence,
         "level": level,
         "message": (
-            f"Kemacetan diduga: laju turun {pct}% (z={z:.1f}) dari baseline EMA — "
+            f"Kemacetan diduga: laju turun {pct}% (z={z:.1f}) dari baseline EMA, "
             f"periksa konveyor / kebersihan sensor {machine_id}."
         ),
     }

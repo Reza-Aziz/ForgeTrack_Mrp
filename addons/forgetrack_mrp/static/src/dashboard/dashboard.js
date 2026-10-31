@@ -167,7 +167,7 @@ class ItemDashboard extends Component {
                 y: 100 - height,
                 h: height,
                 hit: this.targetPerHour && h.count >= this.targetPerHour,
-                title: `${String(h.hour).padStart(2, "0")}:00 WIB — ${h.count} bacaan`,
+                title: `${String(h.hour).padStart(2, "0")}:00 WIB · ${h.count} bacaan`,
             };
         });
     }

@@ -105,7 +105,7 @@ def predict_eta(machine_id, target, rows=None, now_wib=None):
             "produced_today": produced, "remaining": remaining,
             "rate_per_min": 0, "eta_wib": None, "shift": shift,
             "is_delayed": None,  # tak bisa dihitung bila mesin mati/diam
-            "source": source + " — laju 0 bacaan/menit, ETA tidak tersedia",
+            "source": source + ". Laju 0 bacaan/menit, ETA tidak tersedia",
         }
 
     minutes = remaining / rate_per_min
