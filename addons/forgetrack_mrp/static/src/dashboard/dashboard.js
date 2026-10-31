@@ -6,9 +6,9 @@ import { useService } from "@web/core/utils/hooks";
 
 const MODEL = "forgetrack.machine.reading";
 const TARGET_KEY = "forgetrack.dashboard.targets";
-const RUNNING_MS = 5 * 60 * 1000; // Running = bacaan terakhir < 5 menit lalu
+const RUNNING_MS = 5 * 60 * 1000; // bacaan terakhir < 5 menit lalu = Running
 
-/** Shift 1 = jam 00–07, Shift 2 = 08–15, Shift 3 = 16–23 (jam lokal, dihitung server) */
+/** Shift 1 = jam 00–07, Shift 2 = 08–15, Shift 3 = 16–23 (WIB, dihitung server) */
 const SHIFTS = {
     "1": [0, 1, 2, 3, 4, 5, 6, 7],
     "2": [8, 9, 10, 11, 12, 13, 14, 15],
@@ -26,21 +26,25 @@ function localInput(d) {
         .toISOString().slice(0, 16);
 }
 
-/** "29 Okt 2026 14:30" (format server, zona user) → Date lokal | null */
-const MONTHS = {
-    Jan: 0, Feb: 1, Mar: 2, Apr: 3, Mei: 4, May: 4, Jun: 5, Jul: 6,
-    Agu: 7, Ags: 7, Aug: 7, Sep: 8, Okt: 9, Oct: 9, Nov: 10, Des: 11, Dec: 11,
-};
-function parseLastReading(str) {
-    const m = /^(\d{1,2}) ([A-Za-z]{3}) (\d{4}) (\d{1,2}):(\d{2})$/.exec((str || "").trim());
-    const month = m ? MONTHS[m[2]] : undefined;
-    return month === undefined ? null : new Date(+m[3], month, +m[1], +m[4], +m[5]);
-}
-
 /** 12483 → "12.4k" */
 function fmtCount(n) {
     return n > 9999 ? (n / 1000).toFixed(1) + "k" : String(n);
 }
+
+/** Skala sumbu-Y "rapi": nilai tangga terdekat yang >= nilai tertinggi */
+const LADDER = [4, 6, 8, 10, 12, 16, 20, 30, 40, 60, 80, 120, 160, 200, 300, 500, 800, 1200, 2000];
+function niceMax(m) {
+    return LADDER.find((v) => v >= (m || 1)) ?? Math.ceil(m / 2000) * 2000;
+}
+
+/** Jam WIB, format 24 jam (h23 menghindari "24:xx" saat tengah malam) */
+const fmtClock = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Jakarta",
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+});
 
 function loadTargets() {
     try {
@@ -64,7 +68,6 @@ class ItemDashboard extends Component {
             from: localInput(new Date(new Date().setHours(0, 0, 0, 0))),
             to: "",
             shift: "all",
-            mock: "", // "" = otomatis, "run"/"stop" = paksa status (prototipe)
             targets: loadTargets(),
             online: true,
             lastSync: "",
@@ -94,11 +97,10 @@ class ItemDashboard extends Component {
         return this.state.cards.find((c) => c.machine_id === this.state.machineId);
     }
 
-    /** "run" | "stop"; mock menimpa aturan otomatis sampai dikembalikan ke Otomatis */
+    /** "run" | "stop" — murni dari umur bacaan MQTT terakhir (field server last_ts) */
     get status() {
-        if (this.state.mock) return this.state.mock;
-        const last = parseLastReading(this.machine?.last_reading);
-        return last && Date.now() - last.getTime() < RUNNING_MS ? "run" : "stop";
+        const ts = this.machine?.last_ts;
+        return ts && Date.now() - Date.parse(ts) < RUNNING_MS ? "run" : "stop";
     }
 
     get progress() {
@@ -121,23 +123,49 @@ class ItemDashboard extends Component {
         return target / (this.shiftHours ? this.shiftHours.length : 24);
     }
 
+    /** deret jam sesuai filter shift */
+    get series() {
+        const hours = this.shiftHours;
+        return this.state.hourly.filter((h) => !hours || hours.includes(h.hour));
+    }
+
+    /** batas atas sumbu Y: nilai tangga yang menampung tertinggi data & target */
+    get gridMax() {
+        const values = this.series.map((h) => h.count);
+        if (this.targetPerHour) values.push(this.targetPerHour);
+        return niceMax(Math.max(...values, 1));
+    }
+
+    /** label sumbu Y: 5 tingkat (100/75/50/25/0 % dari gridMax) */
+    get yTicks() {
+        const g = this.gridMax;
+        return [g, g * 0.75, g * 0.5, g * 0.25, 0]
+            .map((v) => (v % 1 ? v.toFixed(1) : String(v)));
+    }
+
+    /** posisi garis target, satuan viewBox 0–100 */
+    get targetY() {
+        return 100 - (this.targetPerHour / this.gridMax) * 100;
+    }
+
     /** batang grafik; koordinat memakai satuan viewBox 0–100 */
     get bars() {
-        const hours = this.shiftHours;
-        const list = this.state.hourly.filter((h) => !hours || hours.includes(h.hour));
-        const max = Math.max(...list.map((h) => h.count), 1);
+        const list = this.series;
+        const max = this.gridMax;
         const step = 100 / Math.max(list.length, 1);
+        const labelEvery = list.length > 12 ? 2 : 1; // 24 bar → label tiap 2 jam
         return list.map((h, i) => {
             const height = (h.count / max) * 100;
             return {
                 hour: h.hour,
                 label: String(h.hour).padStart(2, "0"),
+                show: h.hour % labelEvery === 0,
                 x: i * step + step * 0.2,
                 w: step * 0.6,
                 y: 100 - height,
                 h: height,
-                above: this.targetPerHour && h.count >= this.targetPerHour,
-                title: `${String(h.hour).padStart(2, "0")}:00 — ${h.count} bacaan`,
+                hit: this.targetPerHour && h.count >= this.targetPerHour,
+                title: `${String(h.hour).padStart(2, "0")}:00 WIB — ${h.count} bacaan`,
             };
         });
     }
@@ -164,7 +192,7 @@ class ItemDashboard extends Component {
                     this.state.machineId = cards[0].machine_id;
                 }
             }
-            this.state.lastSync = new Date().toTimeString().slice(0, 8);
+            this.state.lastSync = fmtClock.format(new Date());
             this.state.online = true;
         } catch {
             if (seq !== this._seq) return;

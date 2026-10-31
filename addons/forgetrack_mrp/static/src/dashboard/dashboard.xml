@@ -4,34 +4,20 @@
 <t t-name="forgetrack_mrp.Dashboard">
     <div class="o_ft_dashboard">
 
-        <!-- Header: judul + status live + kontrol prototipe -->
+        <!-- Header: judul + status live -->
         <header class="o_ft_header">
             <div>
                 <h4 class="o_ft_title">Monitoring Mesin</h4>
                 <span t-att-class="'badge ' + (state.online ? 'o_ft_live' : 'bg-danger')"
                       t-esc="state.online ? 'Live 🟢' : 'Koneksi terputus'"/>
                 <span class="o_ft_sync text-muted" t-if="state.lastSync"
-                      t-esc="'Sinkronisasi terakhir ' + state.lastSync"/>
-            </div>
-            <div class="o_ft_proto text-muted">
-                <span class="small">Prototipe</span>
-                <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-secondary"
-                            t-att-class="{ active: state.mock === '' }"
-                            t-on-click="() => this.state.mock = ''">Otomatis</button>
-                    <button type="button" class="btn btn-outline-secondary"
-                            t-att-class="{ active: state.mock === 'run' }"
-                            t-on-click="() => this.state.mock = 'run'">Running</button>
-                    <button type="button" class="btn btn-outline-secondary"
-                            t-att-class="{ active: state.mock === 'stop' }"
-                            t-on-click="() => this.state.mock = 'stop'">Berhenti</button>
-                </div>
+                      t-esc="'Sinkronisasi terakhir ' + state.lastSync + ' WIB'"/>
             </div>
         </header>
 
         <!-- Filter: rentang, kustom datetime, shift -->
         <div class="o_ft_filters">
-            <div class="btn-group btn-group-sm">
+            <div class="btn-group btn-group-sm o_ft_presets">
                 <button type="button" class="btn btn-outline-primary"
                         t-att-class="{ active: state.preset === 'today' }"
                         t-on-click="() => this.setPreset('today')">Hari ini</button>
@@ -83,6 +69,8 @@
                     <div class="o_ft_status">
                         <span t-att-class="'o_ft_dot o_ft_' + (status === 'run' ? 'run' : 'stop')"/>
                         <span class="fw-semibold" t-esc="status === 'run' ? 'Running' : 'Berhenti'"/>
+                        <span class="small text-muted"
+                              t-esc="status === 'run' ? '— data MQTT masuk' : '— tidak ada data masuk'"/>
                     </div>
 
                     <div class="o_ft_count" aria-live="polite">
@@ -135,38 +123,55 @@
             <!-- Kartu grafik: laju bacaan per jam (SVG murni) -->
             <div class="card o_ft_chartcard">
                 <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-baseline">
+                    <div class="d-flex justify-content-between align-items-baseline flex-wrap gap-2">
                         <h5 class="o_ft_charttitle">Laju per Jam</h5>
-                        <span class="small text-muted">
-                            <t t-if="targetPerHour"
-                               t-esc="'Target/jam: ' + fmtDist(targetPerHour) + ' pcs'"/>
+                        <span class="small text-muted"><t t-esc="'pcs/jam (WIB)'"/><t
+                            t-if="targetPerHour"
+                            t-esc="' · target/jam ' + fmtDist(targetPerHour) + ' pcs'"/>
                         </span>
                     </div>
+
                     <div class="o_ft_chart">
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none"
-                             class="o_ft_svg" aria-hidden="true">
-                            <line x1="0" y1="0" x2="100" y2="0"
-                                  vector-effect="non-scaling-stroke"/>
-                            <line x1="0" y1="25" x2="100" y2="25"
-                                  vector-effect="non-scaling-stroke"/>
-                            <line x1="0" y1="50" x2="100" y2="50"
-                                  vector-effect="non-scaling-stroke"/>
-                            <line x1="0" y1="75" x2="100" y2="75"
-                                  vector-effect="non-scaling-stroke"/>
-                            <line x1="0" y1="99.5" x2="100" y2="99.5"
-                                  vector-effect="non-scaling-stroke"/>
-                            <t t-foreach="bars" t-as="b" t-key="b.hour">
-                                <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w"
-                                      t-att-height="b.h" t-att-class="{ o_ft_hit: b.above }">
-                                    <title t-esc="b.title"/>
-                                </rect>
-                            </t>
-                        </svg>
-                        <div class="o_ft_axis">
-                            <t t-foreach="bars" t-as="b" t-key="b.hour">
-                                <span t-esc="b.label"/>
-                            </t>
+                        <div class="o_ft_chartwrap">
+                            <!-- Sumbu Y: label nilai (unit di keterangan atas) -->
+                            <div class="o_ft_yaxis" aria-hidden="true">
+                                <t t-foreach="yTicks" t-as="v" t-key="v_index">
+                                    <span t-esc="v"/>
+                                </t>
+                            </div>
+                            <div class="o_ft_plot">
+                                <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+                                     class="o_ft_svg" aria-hidden="true">
+                                    <line x1="0" y1="0" x2="100" y2="0"
+                                          vector-effect="non-scaling-stroke"/>
+                                    <line x1="0" y1="25" x2="100" y2="25"
+                                          vector-effect="non-scaling-stroke"/>
+                                    <line x1="0" y1="50" x2="100" y2="50"
+                                          vector-effect="non-scaling-stroke"/>
+                                    <line x1="0" y1="75" x2="100" y2="75"
+                                          vector-effect="non-scaling-stroke"/>
+                                    <line x1="0" y1="99.5" x2="100" y2="99.5"
+                                          vector-effect="non-scaling-stroke"/>
+                                    <!-- garis target/jam -->
+                                    <line t-if="targetPerHour" x1="0" x2="100"
+                                          t-att-y1="targetY" t-att-y2="targetY"
+                                          class="o_ft_targetline"
+                                          vector-effect="non-scaling-stroke"/>
+                                    <t t-foreach="bars" t-as="b" t-key="b.hour">
+                                        <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w"
+                                              t-att-height="b.h" t-att-class="{ o_ft_hit: b.hit }">
+                                            <title t-esc="b.title"/>
+                                        </rect>
+                                    </t>
+                                </svg>
+                                <div class="o_ft_axis">
+                                    <t t-foreach="bars" t-as="b" t-key="b.hour">
+                                        <span t-esc="b.show ? b.label : ''"/>
+                                    </t>
+                                </div>
+                            </div>
                         </div>
+                        <div class="o_ft_xlabel small text-muted">jam (WIB)</div>
                     </div>
                 </div>
             </div>
