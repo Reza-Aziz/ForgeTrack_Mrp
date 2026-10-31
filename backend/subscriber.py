@@ -62,7 +62,13 @@ client = mqtt.Client(
 client.on_connect = on_connect
 client.on_message = on_message
 
-print(f"Menghubungkan ke Mosquitto {BROKER}:{PORT}...")
 
-client.connect(BROKER, PORT, 60)
-client.loop_forever()
+def run():
+    """Hubungkan & dengarkan MQTT (blokir). Dipanggil dari main.py atau __main__."""
+    print(f"Menghubungkan ke Mosquitto {BROKER}:{PORT}...")
+    client.connect(BROKER, PORT, 60)
+    client.loop_forever()
+
+
+if __name__ == "__main__":
+    run()
