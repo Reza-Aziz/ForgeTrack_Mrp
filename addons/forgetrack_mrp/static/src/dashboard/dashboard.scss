@@ -3,6 +3,9 @@
 
 // ——— Header: judul, badge Live
 .o_ft_dashboard {
+    height: 100%;          // fix scroll layar kecil: container sendiri yang menggulir
+    overflow-y: auto;
+    overflow-x: hidden;
     padding: 1rem;
 
     .o_ft_header {
@@ -229,6 +232,23 @@
     font-size: 0.65rem;
 }
 
+// ——— Kartu Analisis ML
+.o_ft_ml {
+    .o_ft_mlrow {
+        padding: 0.6rem 0;
+        border-top: 1px solid $border-color;
+
+        &:first-of-type { border-top: none; padding-top: 0; }
+    }
+
+    .o_ft_mlval {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+}
+
 // ——— Responsive
 @media (max-width: 900px) {
     .o_ft_dashboard { padding: 0.75rem; }
@@ -253,5 +273,6 @@
     .o_ft_machine .o_ft_number { font-size: 2.1rem; }
     .o_ft_machine .o_ft_target { max-width: 100%; }
     .o_ft_machine .o_ft_metrics { gap: 0.9rem; }
+    .o_ft_ml .o_ft_mlval { align-items: flex-start; flex-direction: column; }
     .o_ft_axis { font-size: 0.55rem; }
 }

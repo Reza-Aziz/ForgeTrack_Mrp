@@ -60,7 +60,7 @@
                 <div class="card-body">
                     <t t-if="machine">
                     <select class="form-select form-select-sm" aria-label="Pilih mesin"
-                            t-model="state.machineId">
+                            t-model="state.machineId" t-on-change="() => this._mlLoad()">
                         <t t-foreach="state.cards" t-as="c" t-key="c.machine_id">
                             <option t-att-value="c.machine_id" t-esc="c.machine_id"/>
                         </t>
@@ -117,6 +117,65 @@
                     </div>
                     </t>
                     <div t-if="!machine" class="text-muted small">Pilih mesin di atas…</div>
+                </div>
+            </div>
+
+            <!-- Kartu Analisis ML: hasil layanan backend/ml (ETA, anomali, forecast) -->
+            <div class="card o_ft_ml">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <h5 class="o_ft_charttitle">Analisis ML</h5>
+                        <span t-if="state.ml.online === false" class="badge bg-secondary">
+                            layanan ML mati
+                        </span>
+                    </div>
+
+                    <t t-if="state.ml.online !== false">
+                        <div class="o_ft_mlrow">
+                            <span class="o_ft_label">Prediksi selesai (ETA)</span>
+                            <div t-if="state.ml.eta &amp;&amp; state.ml.eta.eta_wib" class="o_ft_mlval">
+                                <span class="fw-semibold" t-esc="state.ml.eta.eta_wib"/>
+                                <span class="badge"
+                                      t-att-class="{ 'text-bg-danger': state.ml.eta.is_delayed, 'text-bg-success': !state.ml.eta.is_delayed }"
+                                      t-esc="state.ml.eta.is_delayed ? 'terlambat' : 'tepat waktu'"/>
+                                <span class="text-muted small"
+                                      t-esc="'· laju ' + state.ml.eta.rate_per_min + ' pcs/menit, sisa ' + state.ml.eta.remaining + ' pcs'"/>
+                            </div>
+                            <span t-elif="state.ml.eta" class="text-muted small">
+                                Laju 0 — mesin diam, ETA tidak tersedia.
+                            </span>
+                            <span t-else="" class="text-muted small">
+                                Isi Target Produksi untuk melihat prediksi waktu selesai.
+                            </span>
+                        </div>
+
+                        <div class="o_ft_mlrow">
+                            <span class="o_ft_label">Deteksi anomali</span>
+                            <div t-if="state.ml.anomaly" class="o_ft_mlval">
+                                <span class="badge"
+                                      t-att-class="{ 'text-bg-danger': state.ml.anomaly.level === 'critical', 'text-bg-warning': state.ml.anomaly.level !== 'critical' }"
+                                      t-esc="'conf ' + state.ml.anomaly.confidence"/>
+                                <span class="small" t-esc="state.ml.anomaly.message"/>
+                            </div>
+                            <span t-else="" class="text-success small">
+                                ✓ Normal — tidak ada penurunan laju mencurigakan
+                            </span>
+                        </div>
+
+                        <div class="o_ft_mlrow">
+                            <span class="o_ft_label">Target esok (forecast)</span>
+                            <div t-if="state.ml.forecast" class="o_ft_mlval">
+                                <span class="fw-semibold"
+                                      t-esc="state.ml.forecast.recommended_target + ' pcs'"/>
+                                <span class="text-muted small"
+                                      t-esc="'· ' + state.ml.forecast.weekday + ' · ' + state.ml.forecast.method"/>
+                            </div>
+                            <span t-else="" class="text-muted small">Belum ada data historis.</span>
+                        </div>
+                    </t>
+                    <div t-else="" class="text-muted small">
+                        Jalankan layanan ML: <code>uvicorn service:app --port 8001</code> di <code>backend/ml</code>.
+                    </div>
                 </div>
             </div>
 

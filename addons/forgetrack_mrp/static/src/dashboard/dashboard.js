@@ -7,6 +7,7 @@ import { useService } from "@web/core/utils/hooks";
 const MODEL = "forgetrack.machine.reading";
 const TARGET_KEY = "forgetrack.dashboard.targets";
 const RUNNING_MS = 5 * 60 * 1000; // bacaan terakhir < 5 menit lalu = Running
+const ML_URL = "http://localhost:8001"; // layanan ML (backend/ml)
 
 /** Shift 1 = jam 00–07, Shift 2 = 08–15, Shift 3 = 16–23 (WIB, dihitung server) */
 const SHIFTS = {
@@ -71,6 +72,7 @@ class ItemDashboard extends Component {
             targets: loadTargets(),
             online: true,
             lastSync: "",
+            ml: { online: true, eta: null, anomaly: null, forecast: null },
         });
         onWillStart(() => this.load());
         this.timer = setInterval(() => this.load(), 5000);
@@ -198,6 +200,33 @@ class ItemDashboard extends Component {
             if (seq !== this._seq) return;
             this.state.online = false; // data terakhir tetap tampil
         }
+        this._mlLoad();
+    }
+
+    /** Ambil hasil ML (ETA/anomali/forecast); gagal → badge mati, dasbor tetap hidup. */
+    async _mlLoad() {
+        const mid = this.state.machineId;
+        if (!mid) return;
+        const target = Math.floor(+(this.state.targets[mid] || 0));
+        const urls = [`/anomalies?machine_id=${mid}`, `/forecast?machine_id=${mid}`];
+        if (target) urls.push(`/eta?machine_id=${mid}&target=${target}`);
+        try {
+            const res = await Promise.all(
+                urls.map((u) =>
+                    fetch(ML_URL + u).then((r) => (r.ok ? r.json() : null))
+                        .catch(() => null)),
+            );
+            const [an, fc, et] = res;
+            // mindah hasil layanan ML ke state — event anomali & mesin dipilih
+            this.state.ml = {
+                online: res.some((v) => v !== null),
+                anomaly: an?.events?.[0] || null,
+                forecast: fc?.[mid] || null,
+                eta: target ? et : null,
+            };
+        } catch {
+            this.state.ml.online = false;
+        }
     }
 
     setPreset(preset) {
@@ -232,6 +261,7 @@ class ItemDashboard extends Component {
         else delete targets[id]; // kosong/0 = tanpa target
         this.state.targets = targets;
         localStorage.setItem(TARGET_KEY, JSON.stringify(targets));
+        this._mlLoad(); // target berubah → ETA langsung dihitung ulang
     }
 }
 
