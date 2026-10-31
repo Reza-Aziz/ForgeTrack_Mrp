@@ -68,7 +68,7 @@
             </div>
         </t>
 
-        <div t-else class="o_ft_grid">
+        <div t-else="" class="o_ft_grid">
             <!-- Kartu utama: mesin, status, aktual, target, progres -->
             <div class="card o_ft_machine">
                 <div class="card-body">
