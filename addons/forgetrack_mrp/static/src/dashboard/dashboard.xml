@@ -3,59 +3,173 @@
 
 <t t-name="forgetrack_mrp.Dashboard">
     <div class="o_ft_dashboard">
-        <div class="o_ft_toolbar">
-            <h4>Monitoring Mesin</h4>
-            <div class="o_ft_filters">
+
+        <!-- Header: judul + status live + kontrol prototipe -->
+        <header class="o_ft_header">
+            <div>
+                <h4 class="o_ft_title">Monitoring Mesin</h4>
+                <span t-att-class="'badge ' + (state.online ? 'o_ft_live' : 'bg-danger')"
+                      t-esc="state.online ? 'Live 🟢' : 'Koneksi terputus'"/>
+                <span class="o_ft_sync text-muted" t-if="state.lastSync"
+                      t-esc="'Sinkronisasi terakhir ' + state.lastSync"/>
+            </div>
+            <div class="o_ft_proto text-muted">
+                <span class="small">Prototipe</span>
                 <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-primary"
-                            t-on-click="() => this.setPreset(0)">Hari ini</button>
-                    <button type="button" class="btn btn-outline-primary"
-                            t-on-click="() => this.setPreset(7)">7 hari</button>
-                    <button type="button" class="btn btn-outline-primary"
-                            t-on-click="() => this.setPreset(30)">30 hari</button>
-                </div>
-                <div class="o_ft_range">
-                    <input type="datetime-local" class="form-control"
-                           t-model="state.from" t-on-change="() => this.load()"/>
-                    <span class="text-muted">s/d</span>
-                    <input type="datetime-local" class="form-control"
-                           t-model="state.to" t-on-change="() => this.load()"/>
+                    <button type="button" class="btn btn-outline-secondary"
+                            t-att-class="{ active: state.mock === '' }"
+                            t-on-click="() => this.state.mock = ''">Otomatis</button>
+                    <button type="button" class="btn btn-outline-secondary"
+                            t-att-class="{ active: state.mock === 'run' }"
+                            t-on-click="() => this.state.mock = 'run'">Running</button>
+                    <button type="button" class="btn btn-outline-secondary"
+                            t-att-class="{ active: state.mock === 'stop' }"
+                            t-on-click="() => this.state.mock = 'stop'">Berhenti</button>
                 </div>
             </div>
+        </header>
+
+        <!-- Filter: rentang, kustom datetime, shift -->
+        <div class="o_ft_filters">
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary"
+                        t-att-class="{ active: state.preset === 'today' }"
+                        t-on-click="() => this.setPreset('today')">Hari ini</button>
+                <button type="button" class="btn btn-outline-primary"
+                        t-att-class="{ active: state.preset === '7' }"
+                        t-on-click="() => this.setPreset('7')">7 Hari</button>
+                <button type="button" class="btn btn-outline-primary"
+                        t-att-class="{ active: state.preset === '30' }"
+                        t-on-click="() => this.setPreset('30')">30 Hari</button>
+                <button type="button" class="btn btn-outline-primary"
+                        t-att-class="{ active: state.preset === 'all' }"
+                        t-on-click="() => this.setPreset('all')">Semua</button>
+            </div>
+            <div class="o_ft_datetimes">
+                <input type="datetime-local" class="form-control form-control-sm"
+                       aria-label="Dari" t-model="state.from" t-on-change="() => this.onDateChange()"/>
+                <span class="text-muted small">s/d</span>
+                <input type="datetime-local" class="form-control form-control-sm"
+                       aria-label="Sampai" t-model="state.to" t-on-change="() => this.onDateChange()"/>
+            </div>
+            <select class="form-select form-select-sm" aria-label="Shift"
+                    t-model="state.shift" t-on-change="() => this.load()">
+                <option value="all">Semua Shift</option>
+                <option value="1">Shift 1</option>
+                <option value="2">Shift 2</option>
+                <option value="3">Shift 3</option>
+            </select>
         </div>
 
         <t t-if="state.cards.length === 0">
             <div class="o_ft_empty text-muted">
-                Tidak ada bacaan pada rentang waktu ini.
+                <div class="fw-semibold mb-1">Tidak ada bacaan</div>
+                <div>Belum ada data mesin pada rentang dan shift ini.</div>
             </div>
         </t>
 
-        <div class="o_ft_grid">
-            <t t-foreach="state.cards" t-as="card" t-key="card.machine_id">
-                <div class="o_ft_card">
-                    <div class="o_ft_device" t-esc="card.machine_id"/>
-                    <div class="o_ft_count">
-                        <span class="o_ft_number" t-esc="card.count"/>
-                        <span class="o_ft_unit">bacaan</span>
+        <div t-else class="o_ft_grid">
+            <!-- Kartu utama: mesin, status, aktual, target, progres -->
+            <div class="card o_ft_machine">
+                <div class="card-body">
+                    <t t-if="machine">
+                    <select class="form-select form-select-sm" aria-label="Pilih mesin"
+                            t-model="state.machineId">
+                        <t t-foreach="state.cards" t-as="c" t-key="c.machine_id">
+                            <option t-att-value="c.machine_id" t-esc="c.machine_id"/>
+                        </t>
+                    </select>
+
+                    <div class="o_ft_status">
+                        <span t-att-class="'o_ft_dot o_ft_' + (status === 'run' ? 'run' : 'stop')"/>
+                        <span class="fw-semibold" t-esc="status === 'run' ? 'Running' : 'Berhenti'"/>
                     </div>
-                    <div class="o_ft_meta">
+
+                    <div class="o_ft_count" aria-live="polite">
+                        <span class="o_ft_number" t-esc="fmtCount(machine.count)"/>
+                        <span class="o_ft_unit text-muted">pcs</span>
+                    </div>
+
+                    <label class="o_ft_target">
+                        <span class="text-muted small">Target Produksi (pcs)</span>
+                        <input type="number" min="0" step="1"
+                               class="form-control form-control-sm" placeholder="Atur target…"
+                               t-att-value="state.targets[state.machineId] || ''"
+                               t-on-input="ev => this.setTarget(ev)"/>
+                    </label>
+
+                    <div t-if="!progress.hidden" class="o_ft_progress">
+                        <div class="progress" role="progressbar" aria-valuemin="0"
+                             t-att-aria-valuenow="progress.pctLabel" aria-valuemax="100"
+                             t-att-aria-label="'Progres target ' + state.targets[state.machineId] + ' pcs'">
+                            <div t-att-class="'progress-bar ' + progress.cls"
+                                 t-att-style="'width: ' + progress.width + '%'"/>
+                        </div>
+                        <span class="o_ft_pct text-muted" t-esc="progress.pctLabel + '%'"/>
+                    </div>
+                    <div t-if="progress.hidden" class="o_ft_noprog small text-muted">
+                        Target belum diatur — progres tidak tersedia.
+                    </div>
+
+                    <div class="o_ft_metrics">
                         <div>
                             <span class="o_ft_label">Rata-rata</span>
-                            <t t-if="card.avg_distance !== false"
-                               t-esc="card.avg_distance + ' cm'"/>
+                            <t t-if="machine.avg_distance !== false"
+                               t-esc="fmtDist(machine.avg_distance) + ' cm'"/>
                         </div>
                         <div>
                             <span class="o_ft_label">Rentang</span>
-                            <t t-if="card.min_distance !== false"
-                               t-esc="card.min_distance + ' – ' + card.max_distance + ' cm'"/>
+                            <t t-if="machine.min_distance !== false"
+                               t-esc="fmtDist(machine.min_distance) + ' – ' + fmtDist(machine.max_distance) + ' cm'"/>
                         </div>
                         <div>
                             <span class="o_ft_label">Terakhir</span>
-                            <t t-esc="card.last_reading"/>
+                            <t t-esc="machine.last_reading"/>
+                        </div>
+                    </div>
+                    </t>
+                    <div t-if="!machine" class="text-muted small">Pilih mesin di atas…</div>
+                </div>
+            </div>
+
+            <!-- Kartu grafik: laju bacaan per jam (SVG murni) -->
+            <div class="card o_ft_chartcard">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-baseline">
+                        <h5 class="o_ft_charttitle">Laju per Jam</h5>
+                        <span class="small text-muted">
+                            <t t-if="targetPerHour"
+                               t-esc="'Target/jam: ' + fmtDist(targetPerHour) + ' pcs'"/>
+                        </span>
+                    </div>
+                    <div class="o_ft_chart">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none"
+                             class="o_ft_svg" aria-hidden="true">
+                            <line x1="0" y1="0" x2="100" y2="0"
+                                  vector-effect="non-scaling-stroke"/>
+                            <line x1="0" y1="25" x2="100" y2="25"
+                                  vector-effect="non-scaling-stroke"/>
+                            <line x1="0" y1="50" x2="100" y2="50"
+                                  vector-effect="non-scaling-stroke"/>
+                            <line x1="0" y1="75" x2="100" y2="75"
+                                  vector-effect="non-scaling-stroke"/>
+                            <line x1="0" y1="99.5" x2="100" y2="99.5"
+                                  vector-effect="non-scaling-stroke"/>
+                            <t t-foreach="bars" t-as="b" t-key="b.hour">
+                                <rect t-att-x="b.x" t-att-y="b.y" t-att-width="b.w"
+                                      t-att-height="b.h" t-att-class="{ o_ft_hit: b.above }">
+                                    <title t-esc="b.title"/>
+                                </rect>
+                            </t>
+                        </svg>
+                        <div class="o_ft_axis">
+                            <t t-foreach="bars" t-as="b" t-key="b.hour">
+                                <span t-esc="b.label"/>
+                            </t>
                         </div>
                     </div>
                 </div>
-            </t>
+            </div>
         </div>
     </div>
 </t>
